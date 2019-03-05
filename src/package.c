@@ -108,7 +108,8 @@ void pkg1_unpack(pk11_offs *offs, u32 pkg1Off) {
                 fclose();
             }
             memcpy((void *)offs->warmboot_base, extWb == NULL ? pdata : extWb, sec_size[offs->sec_map[i]]);
-        } else if (offs->sec_map[i] == 2 && offs->secmon_base) {
+        } 
+        if (offs->sec_map[i] == 2 && offs->secmon_base) {
             u8 *extSec = NULL;
             if(fopen("/ReiNX/secmon.bin", "rb") != 0) {
                 extSec = malloc(fsize());
@@ -119,14 +120,33 @@ void pkg1_unpack(pk11_offs *offs, u32 pkg1Off) {
         }
         pdata += sec_size[offs->sec_map[i]];
     }
-    if(extWb != NULL) {
-        free(extWb);
-        customWarmboot = 1;
+}
+
+bool hasCustomWb() {
+    bool ret = false;
+    if(fopen("/ReiNX/warmboot.bin", "rb") != 0) {
+        ret = true;
+        fclose();
     }
-    if(extSec != NULL) {
-        free(extSec);
-        customSecmon = 1;
+    return ret;
+}
+
+bool hasCustomSecmon() {
+    bool ret = false;
+    if(fopen("/ReiNX/secmon.bin", "rb") != 0) {
+        ret = true;
+        fclose();
     }
+    return ret;
+}
+
+bool hasCustomKern() {
+    bool ret = false;
+    if(fopen("/ReiNX/kernel.bin", "rb") != 0) {
+        ret = true;
+        fclose();
+    }
+    return ret;
 }
 
 void buildFirmwarePackage(u8 *kernel, u32 kernel_size, link_t *kips_info) {
@@ -151,7 +171,6 @@ void buildFirmwarePackage(u8 *kernel, u32 kernel_size, link_t *kips_info) {
         fread(extKern, fsize(), 1);
         fclose();
     }
-    if(extKern != NULL) customKern = 1;
     memcpy(pdst, extKern == NULL ? kernel : extKern, kernel_size);
     hdr->sec_size[PKG2_SEC_KERNEL] = kernel_size;
     hdr->sec_off[PKG2_SEC_KERNEL] = 0x10000000;
@@ -248,6 +267,8 @@ kippatchset_t kip_patches[] = {
     { "FS", "\x96\x6a\xdd\x3d\x20\xb6\x27\x13\x2c\x5a\x8d\xa4\x9a\xc9\xd8\xdd", fs_kip_patches_600_40_exfat },
     { "FS", "\x3a\x57\x4d\x43\x61\x86\x19\x1d\x17\x88\xeb\x2c\x0f\x07\x6b\x11", fs_kip_patches_600_50 },
     { "FS", "\x33\x05\x53\xf6\xb5\xfb\x55\xc4\xc2\xd7\xb7\x36\x24\x02\x76\xb3", fs_kip_patches_600_50_exfat },
+    { "FS", "\x33\x05\x53\xf6\xb5\xfb\x55\xc4\xc2\xd7\xb7\x36\x24\x02\x76\xb3", fs_kip_patches_700 },
+    { "FS", "\x2a\xdb\xe9\x7e\x9b\x5f\x41\x77\x9e\xc9\x5f\xfe\x26\x99\xc9\x33", fs_kip_patches_700_exfat },
     { NULL, NULL, NULL },
 };
 
@@ -297,6 +318,9 @@ u32 *getSndPayload(u32 id, size_t *size) {
         case 6:
             *size = sizeof(PRC_ID_SND_600);
             ret = PRC_ID_SND_600;
+        case 7:
+            *size = sizeof(PRC_ID_SND_700);
+            ret = PRC_ID_SND_700;
             break;
     }
     return ret;
@@ -332,6 +356,10 @@ u32 *getRcvPayload(u32 id, size_t *size) {
         case 6:
             *size = sizeof(PRC_ID_RCV_600);
             ret = PRC_ID_RCV_600;
+            break;
+        case 7:
+            *size = sizeof(PRC_ID_RCV_700);
+            ret = PRC_ID_RCV_700;
             break;
     }
     return ret;
